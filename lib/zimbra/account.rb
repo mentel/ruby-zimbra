@@ -15,7 +15,7 @@ module Zimbra
 
       def create(options)
         account = new(options)
-        AccountService.create(account) 
+        AccountService.create(account)
       end
 
       def acl_name
@@ -24,6 +24,7 @@ module Zimbra
     end
 
     attr_accessor :id, :name, :password, :acls, :cos_id, :delegated_admin
+    attr_accessor :mail_quota # in bytes
 
     def initialize(options = {})
       self.id = options[:id]
@@ -32,10 +33,11 @@ module Zimbra
       self.acls = options[:acls] || []
       self.cos_id = (options[:cos] ? options[:cos].id : options[:cos_id])
       self.delegated_admin = options[:delegated_admin]
+      self.mail_quota = options[:mail_quota]
     end
 
     def delegated_admin=(val)
-      @delegated_admin = Zimbra::Boolean.read(val) 
+      @delegated_admin = Zimbra::Boolean.read(val)
     end
     def delegated_admin?
       @delegated_admin
@@ -84,7 +86,7 @@ module Zimbra
         Builder.modify(message, account)
       end
       Parser.account_response(xml/'//n2:account')
-    end 
+    end
 
     def delete(dist)
       xml = invoke("n2:DeleteAccountRequest") do |message|
@@ -98,8 +100,9 @@ module Zimbra
           message.add 'name', account.name
           message.add 'password', account.password
           A.inject(message, 'zimbraCOSId', account.cos_id)
+          A.inject(message, 'zimbraMailQuota', account.mail_quota)
         end
-        
+
         def get_by_id(message, id)
           message.add 'account', id do |c|
             c.set_attr 'by', 'id'
@@ -114,7 +117,7 @@ module Zimbra
 
         def modify(message, account)
           message.add 'id', account.id
-          modify_attributes(message, distribution_list)
+          modify_attributes(message, account)
         end
         def modify_attributes(message, account)
           if account.acls.empty?
@@ -124,8 +127,9 @@ module Zimbra
               acl.apply(message)
             end
           end
-          Zimbra::A.inject(node, 'zimbraCOSId', account.cos_id)
-          Zimbra::A.inject(node, 'zimbraIsDelegatedAdminAccount', (delegated_admin ? 'TRUE' : 'FALSE'))
+          Zimbra::A.inject(message, 'zimbraCOSId', account.cos_id)
+          Zimbra::A.inject(message, 'zimbraIsDelegatedAdminAccount', (account.delegated_admin? ? 'TRUE' : 'FALSE'))
+          Zimbra::A.inject(message, 'zimbraMailQuota', account.mail_quota)
         end
 
         def delete(message, id)
@@ -147,7 +151,8 @@ module Zimbra
           acls = Zimbra::ACL.read(node)
           cos_id = Zimbra::A.read(node, 'zimbraCOSId')
           delegated_admin = Zimbra::A.read(node, 'zimbraIsDelegatedAdminAccount')
-          Zimbra::Account.new(:id => id, :name => name, :acls => acls, :cos_id => cos_id, :delegated_admin => delegated_admin)
+          mail_quota = Zimbra::A.read(node, 'zimbraMailQuota')
+          Zimbra::Account.new(:id => id, :name => name, :acls => acls, :cos_id => cos_id, :delegated_admin => delegated_admin, :mail_quota => mail_quota)
         end
       end
     end
