@@ -136,7 +136,7 @@ module Zimbra
           id = (node/'@id').to_s
           name = (node/'@name').to_s
           acls = Zimbra::ACL.read(node)
-          max_accounts = Zimbra::A.read(node, 'zimbraDomainMaxAccounts').to_i rescue nil
+          max_accounts = Zimbra::A.single_read(node, 'zimbraDomainMaxAccounts').to_i rescue nil
           Zimbra::Domain.new(id, name, acls, max_accounts)
         end
       end

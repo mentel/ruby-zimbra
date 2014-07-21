@@ -25,6 +25,10 @@ module Zimbra
 
     attr_accessor :id, :name, :password, :acls, :cos_id, :delegated_admin
     attr_accessor :mail_quota # in bytes
+    attr_accessor :status
+
+    # readonly attributes
+    attr_accessor :created_at, :last_login_at
 
     def initialize(options = {})
       self.id = options[:id]
@@ -34,6 +38,9 @@ module Zimbra
       self.cos_id = (options[:cos] ? options[:cos].id : options[:cos_id])
       self.delegated_admin = options[:delegated_admin]
       self.mail_quota = options[:mail_quota]
+      self.status = options[:status]
+      self.created_at = options[:created_at]
+      self.last_login_at = options[:last_login_at]
     end
 
     def delegated_admin=(val)
@@ -130,6 +137,9 @@ module Zimbra
           Zimbra::A.inject(message, 'zimbraCOSId', account.cos_id)
           Zimbra::A.inject(message, 'zimbraIsDelegatedAdminAccount', (account.delegated_admin? ? 'TRUE' : 'FALSE'))
           Zimbra::A.inject(message, 'zimbraMailQuota', account.mail_quota)
+          if self.status
+            Zimbra::A.inject(message, 'zimbraAccountStatus', account.status)
+          end
         end
 
         def delete(message, id)
@@ -151,8 +161,24 @@ module Zimbra
           acls = Zimbra::ACL.read(node)
           cos_id = Zimbra::A.read(node, 'zimbraCOSId')
           delegated_admin = Zimbra::A.read(node, 'zimbraIsDelegatedAdminAccount')
-          mail_quota = Zimbra::A.read(node, 'zimbraMailQuota')
-          Zimbra::Account.new(:id => id, :name => name, :acls => acls, :cos_id => cos_id, :delegated_admin => delegated_admin, :mail_quota => mail_quota)
+          mail_quota = Zimbra::A.single_read(node, 'zimbraMailQuota').to_i
+          status = Zimbra::A.single_read(node, 'zimbraAccountStatus')
+          created_at = DateTime.parse(Zimbra::A.single_read(node, 'zimbraCreateTimestamp'))
+          last_login_at = Zimbra::A.single_read(node, 'zimbraLastLogonTimestamp')
+          if last_login_at && !last_login_at.empty?
+            last_login_at = DateTime.parse(last_login_at)
+          end
+          Zimbra::Account.new(
+            :id => id,
+            :name => name,
+            :acls => acls,
+            :cos_id => cos_id,
+            :delegated_admin => delegated_admin,
+            :mail_quota => mail_quota,
+            :status => status,
+            :created_at => created_at,
+            :last_login_at => last_login_at,
+          )
         end
       end
     end

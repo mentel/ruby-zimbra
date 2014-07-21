@@ -4,7 +4,7 @@ module Zimbra
       def inject(xmldoc, name, value, extra_attributes = {})
         new(name, value, extra_attributes).inject(xmldoc)
       end
-      
+
       def read(xmldoc, name)
         nodes = (xmldoc/"//n2:a[@n='#{name}']")
         return nil if nodes.nil?
@@ -12,6 +12,15 @@ module Zimbra
           nodes.map { |n| from_node(n, name).value }
         else
           from_node(nodes, name).value
+        end
+      end
+
+      def single_read(xmldoc, name)
+        node = xmldoc.native_element.css("[n='#{name}']").children.first
+        if node
+          node.text
+        else
+          nil
         end
       end
 
@@ -48,4 +57,5 @@ module Zimbra
       end
     end
   end
+
 end
