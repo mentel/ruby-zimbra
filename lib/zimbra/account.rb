@@ -26,6 +26,12 @@ module Zimbra
     attr_accessor :id, :name, :password, :acls, :cos_id, :delegated_admin
     attr_accessor :mail_quota # in bytes
     attr_accessor :status
+    attr_accessor :raw_attributes
+
+    attr_accessor :first_name, :last_name, :password, :phone, :home_phone,
+      :mobile, :pager, :fax, :company, :title, :street, :city, :state, :postal_code,
+      :country
+    attr_accessor :old_password
 
     # readonly attributes
     attr_accessor :created_at, :last_login_at
@@ -41,6 +47,22 @@ module Zimbra
       self.status = options[:status]
       self.created_at = options[:created_at]
       self.last_login_at = options[:last_login_at]
+      self.raw_attributes = options[:raw_attributes]
+
+      self.first_name = options[:first_name]
+      self.last_name = options[:last_name]
+      self.phone = options[:phone]
+      self.home_phone = options[:home_phone]
+      self.mobile = options[:mobile]
+      self.pager = options[:pager]
+      self.fax = options[:fax]
+      self.company = options[:company]
+      self.title = options[:title]
+      self.street = options[:street]
+      self.city = options[:city]
+      self.state = options[:state]
+      self.postal_code = options[:postal_code]
+      self.country = options[:country]
     end
 
     def delegated_admin=(val)
@@ -56,6 +78,10 @@ module Zimbra
 
     def delete
       AccountService.delete(self)
+    end
+
+    def change_password
+      AccountService.change_password(self)
     end
   end
 
@@ -107,6 +133,13 @@ module Zimbra
       end
     end
 
+    def change_password(account)
+      xml = invoke('n2:SetPasswordRequest') do |message|
+        message.add 'id', account.id
+        message.add 'newPassword', account.password
+      end
+    end
+
     class Builder
       class << self
         def create(message, account)
@@ -114,6 +147,11 @@ module Zimbra
           message.add 'password', account.password
           A.inject(message, 'zimbraCOSId', account.cos_id)
           A.inject(message, 'zimbraMailQuota', account.mail_quota)
+          if account.raw_attributes
+            account.raw_attributes.each do |key, val|
+              Zimbra::A.inject(message, key, val)
+            end
+          end
         end
 
         def get_by_id(message, id)
@@ -143,8 +181,13 @@ module Zimbra
           Zimbra::A.inject(message, 'zimbraCOSId', account.cos_id)
           Zimbra::A.inject(message, 'zimbraIsDelegatedAdminAccount', (account.delegated_admin? ? 'TRUE' : 'FALSE'))
           Zimbra::A.inject(message, 'zimbraMailQuota', account.mail_quota)
-          if self.status
+          if account.status && !account.raw_attributes
             Zimbra::A.inject(message, 'zimbraAccountStatus', account.status)
+          end
+          if account.raw_attributes
+            account.raw_attributes.each do |key, val|
+              Zimbra::A.inject(message, key, val)
+            end
           end
         end
 
@@ -174,6 +217,21 @@ module Zimbra
           if last_login_at && !last_login_at.empty?
             last_login_at = DateTime.parse(last_login_at)
           end
+          first_name = Zimbra::A.single_read(node, 'givenName')
+          last_name = Zimbra::A.single_read(node, 'sn')
+          password = Zimbra::A.single_read(node, 'password')
+          phone = Zimbra::A.single_read(node, 'telephoneNumber')
+          home_phone = Zimbra::A.single_read(node, 'homePhone')
+          mobile = Zimbra::A.single_read(node, 'mobile')
+          pager = Zimbra::A.single_read(node, 'pager')
+          fax = Zimbra::A.single_read(node, 'facsimileTelephoneNumber')
+          company = Zimbra::A.single_read(node, 'company')
+          title = Zimbra::A.single_read(node, 'title')
+          street = Zimbra::A.single_read(node, 'street')
+          city = Zimbra::A.single_read(node, 'l')
+          state = Zimbra::A.single_read(node, 'st')
+          postal_code = Zimbra::A.single_read(node, 'postalCode')
+          country = Zimbra::A.single_read(node, 'co')
           Zimbra::Account.new(
             :id => id,
             :name => name,
@@ -184,6 +242,22 @@ module Zimbra
             :status => status,
             :created_at => created_at,
             :last_login_at => last_login_at,
+
+            :first_name => first_name,
+            :last_name => last_name,
+            :password => password,
+            :phone => phone,
+            :home_phone => home_phone,
+            :mobile => mobile,
+            :pager => pager,
+            :fax => fax,
+            :company => company,
+            :title => title,
+            :street => street,
+            :city => city,
+            :state => state,
+            :postal_code => postal_code,
+            :country => country,
           )
         end
       end

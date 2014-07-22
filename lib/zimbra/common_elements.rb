@@ -22,6 +22,9 @@ module Zimbra
         else
           nil
         end
+      # `xmldoc` might not respond to `native_element`
+      rescue NoMethodError
+        read(xmldoc, name)
       end
 
       def from_node(node, name)
