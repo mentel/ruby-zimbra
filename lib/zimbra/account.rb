@@ -1,8 +1,8 @@
 module Zimbra
   class Account
     class << self
-      def all
-        AccountService.all
+      def all(options = {})
+        AccountService.all(options)
       end
 
       def find_by_id(id)
@@ -60,8 +60,14 @@ module Zimbra
   end
 
   class AccountService < HandsoapService
-    def all
-      xml = invoke("n2:GetAllAccountsRequest")
+    def all(options = {})
+      xml = invoke("n2:GetAllAccountsRequest") do |message|
+        if options[:by_domain]
+          message.add 'domain', options[:by_domain] do |c|
+            c.set_attr 'by', 'name'
+          end
+        end
+      end
       Parser.get_all_response(xml)
     end
 
