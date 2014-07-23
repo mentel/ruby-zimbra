@@ -93,6 +93,11 @@ module Zimbra
     def create_alias(alias_name)
       AccountService.create_alias(self, alias_name)
     end
+
+    # @param alias_name String, example: 'test@google.com'
+    def remove_alias(alias_name)
+      AccountService.remove_alias(self, alias_name)
+    end
   end
 
   class AccountService < HandsoapService
@@ -163,6 +168,15 @@ module Zimbra
     # @param alias_name String, example: 'test@google.com'
     def create_alias(account, alias_name)
       xml = invoke('n2:AddAccountAliasRequest') do |message|
+        message.add 'id', account.id
+        message.add 'alias', alias_name
+      end
+    end
+
+    # @param account ::Zimbra::Account
+    # @param alias_name String, example: 'test@google.com'
+    def remove_alias(account, alias_name)
+      xml = invoke('n2:RemoveAccountAliasRequest') do |message|
         message.add 'id', account.id
         message.add 'alias', alias_name
       end
