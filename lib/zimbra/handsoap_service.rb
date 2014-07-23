@@ -12,7 +12,10 @@ module Zimbra
       report_error(response) if http_error?
     end
     def report_error(response)
-      message = response.body.scan(/<soap:faultstring>(.*)<\/soap:faultstring>/).first
+      message = response.body.scan(%r{<(soap:)?faultstring>(.*)</(soap:)?faultstring>}i).first
+      if message && !message.empty?
+        message = message[1] # grab second match
+      end
       raise SOAPFault, message
     end
     def on_after_create_http_request(request)
@@ -40,7 +43,7 @@ module Zimbra
       doc.add_namespace 'n2', "urn:zimbraAdmin"
     end
   end
-  
+
   module HandsoapUriOverrides
     def uri
       Zimbra.admin_api_url
