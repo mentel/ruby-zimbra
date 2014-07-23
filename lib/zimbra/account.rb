@@ -83,6 +83,16 @@ module Zimbra
     def change_password
       AccountService.change_password(self)
     end
+
+    # @return Array<String>|nil
+    def get_aliases
+      AccountService.get_aliases(self)
+    end
+
+    # @param alias_name String, example: 'test@google.com'
+    def create_alias(alias_name)
+      AccountService.create_alias(self, alias_name)
+    end
   end
 
   class AccountService < HandsoapService
@@ -137,6 +147,24 @@ module Zimbra
       xml = invoke('n2:SetPasswordRequest') do |message|
         message.add 'id', account.id
         message.add 'newPassword', account.password
+      end
+    end
+
+    # @return Array<String>|nil
+    def get_aliases(account)
+      xml = invoke("n2:GetAccountRequest") do |message|
+        Builder.get_by_id(message, account.id)
+      end
+      return nil if soap_fault_not_found?
+      Parser.account_response_aliases(xml/"//n2:account")
+    end
+
+    # @param account ::Zimbra::Account
+    # @param alias_name String, example: 'test@google.com'
+    def create_alias(account, alias_name)
+      xml = invoke('n2:AddAccountAliasRequest') do |message|
+        message.add 'id', account.id
+        message.add 'alias', alias_name
       end
     end
 
@@ -259,6 +287,16 @@ module Zimbra
             :postal_code => postal_code,
             :country => country,
           )
+        end
+
+        # @return Array<String>
+        def account_response_aliases(node)
+          res = Zimbra::A.read(node, 'zimbraMailAlias')
+          if res
+            Array === res ? res : [res]
+          else
+            []
+          end
         end
       end
     end
