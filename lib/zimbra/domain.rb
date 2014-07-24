@@ -23,7 +23,7 @@ module Zimbra
     end
 
     attr_accessor :id, :name, :acls
-    attr_accessor :max_accounts
+    attr_accessor :max_accounts, :status
 
     def initialize(id, name, acls = [], max_accounts = nil)
       self.id = id
@@ -117,6 +117,9 @@ module Zimbra
             end
           end
           A.inject(message, 'zimbraDomainMaxAccounts', domain.max_accounts)
+          if domain.status && domain.status != ''
+            A.inject(message, 'zimbraDomainStatus', domain.max_accounts)
+          end
         end
 
         def delete(message, id)
@@ -137,7 +140,10 @@ module Zimbra
           name = (node/'@name').to_s
           acls = Zimbra::ACL.read(node)
           max_accounts = Zimbra::A.single_read(node, 'zimbraDomainMaxAccounts').to_i rescue nil
-          Zimbra::Domain.new(id, name, acls, max_accounts)
+          status = Zimbra::A.single_read(node, 'zimbraDomainStatus')
+          domain_obj = Zimbra::Domain.new(id, name, acls, max_accounts)
+          domain_obj.status = status
+          domain_obj
         end
       end
     end
