@@ -118,7 +118,7 @@ module Zimbra
           end
           A.inject(message, 'zimbraDomainMaxAccounts', domain.max_accounts)
           if domain.status && domain.status != ''
-            A.inject(message, 'zimbraDomainStatus', domain.max_accounts)
+            A.inject(message, 'zimbraDomainStatus', domain.status)
           end
         end
 
