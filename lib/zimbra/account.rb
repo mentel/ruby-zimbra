@@ -254,10 +254,13 @@ module Zimbra
           delegated_admin = Zimbra::A.read(node, 'zimbraIsDelegatedAdminAccount')
           mail_quota = Zimbra::A.single_read(node, 'zimbraMailQuota').to_i
           status = Zimbra::A.single_read(node, 'zimbraAccountStatus')
-          created_at = DateTime.parse(Zimbra::A.single_read(node, 'zimbraCreateTimestamp'))
+          created_at = Zimbra::A.single_read(node, 'zimbraCreateTimestamp')
+          if created_at && !created_at.empty?
+            created_at = DateTime.parse(created_at) rescue nil
+          end
           last_login_at = Zimbra::A.single_read(node, 'zimbraLastLogonTimestamp')
           if last_login_at && !last_login_at.empty?
-            last_login_at = DateTime.parse(last_login_at)
+            last_login_at = DateTime.parse(last_login_at) rescue nil
           end
           first_name = Zimbra::A.single_read(node, 'givenName')
           last_name = Zimbra::A.single_read(node, 'sn')
